@@ -1,0 +1,38 @@
+{
+  "mode": "improved",
+  "psnr": 24.371515645498306,
+  "ssim": 0.8910936117172241,
+  "num_itrs": 2500,
+  "learning_rates": {
+    "opacities": 0.05,
+    "scales": 0.005,
+    "colours": 0.01,
+    "means": 0.002,
+    "quats": 0.001
+  },
+  "num_gaussians_final": 25499,
+  "train_time_s": 3153.911547422409,
+  "args": {
+    "out_path": "./output/q7_2_improved_v1",
+    "data_path": "./data/materials",
+    "gaussians_per_splat": 1000,
+    "num_itrs": 2500,
+    "viz_freq": 50,
+    "device": "cuda",
+    "mode": "improved",
+    "seed": 0,
+    "num_points": 10000,
+    "init_radius": 1.2,
+    "init_opacity": 0.1,
+    "lambda_ssim": 0.2,
+    "densify_from": 300,
+    "densify_until": 1800,
+    "densify_every": 100,
+    "opacity_reset_every": 1000,
+    "densify_grad_thresh": 0.0002,
+    "densify_scale_thresh": 0.03,
+    "prune_opacity": 0.005,
+    "prune_scale": 0.5,
+    "max_gaussians": 30000
+  }
+}

@@ -88,7 +88,7 @@ def get_nerf_datasets(
         # Automatically download the data files if missing.
         download_data((dataset_name,), data_root=data_root)
 
-    train_data = torch.load(cameras_path)
+    train_data = torch.load(cameras_path, weights_only=False)
     n_cameras = train_data["cameras"]["R"].shape[0]
 
     _image_max_image_pixels = Image.MAX_IMAGE_PIXELS
@@ -160,7 +160,7 @@ def download_data(
 
         for fl in (cameras_file, images_file, license_file):
             local_fl = os.path.join(data_root, fl)
-            remote_fl = os.path.join(url_root, fl)
+            remote_fl = url_root + "/" + fl
 
             print(f"Downloading dataset {dataset_name} from {remote_fl} to {local_fl}.")
 

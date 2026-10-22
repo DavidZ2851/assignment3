@@ -35,7 +35,7 @@ from dataset import (
     get_nerf_datasets,
     trivial_collate,
 )
-from render_functions import render_geometry
+from render_functions import render_geometry, render_points
 
 
 # Model class containing:
@@ -55,6 +55,13 @@ class Model(torch.nn.Module):
             cfg.implicit_function
         )
 
+        # Q4.2: separate fine network for hierarchical sampling
+        self.implicit_fn_fine = None
+        if cfg.renderer.type == 'volume_hierarchical':
+            self.implicit_fn_fine = implicit_dict[cfg.implicit_function.type](
+                cfg.implicit_function
+            )
+
         # Point sampling (raymarching) scheme
         self.sampler = sampler_dict[cfg.sampler.type](
             cfg.sampler
@@ -72,6 +79,14 @@ class Model(torch.nn.Module):
         # Call renderer with
         #  a) Implicit volume
         #  b) Sampling routine
+
+        if self.implicit_fn_fine is not None:
+            return self.renderer(
+                self.sampler,
+                self.implicit_fn,
+                ray_bundle,
+                implicit_fn_fine=self.implicit_fn_fine,
+            )
 
         return self.renderer(
             self.sampler,
@@ -100,18 +115,23 @@ def render_images(
 
         # TODO (Q1.3): Visualize xy grid using vis_grid
         if cam_idx == 0 and file_prefix == '':
-            pass
+            plt.imsave('images/grid.png', vis_grid(xy_grid, image_size))
 
         # TODO (Q1.3): Visualize rays using vis_rays
         if cam_idx == 0 and file_prefix == '':
-            pass
+            plt.imsave('images/rays.png', np.clip(vis_rays(ray_bundle, image_size), 0, 1))
         
         # TODO (Q1.4): Implement point sampling along rays in sampler.py
-        pass
+        ray_bundle = model.sampler(ray_bundle)
 
         # TODO (Q1.4): Visualize sample points as point cloud
         if cam_idx == 0 and file_prefix == '':
-            pass
+            render_points(
+                'images/sample_points.png',
+                ray_bundle.sample_points[::16].reshape(1, -1, 3),
+                device=device,
+                background_color=(0, 0, 0),
+            )
 
         # TODO (Q1.5): Implement rendering in renderer.py
         out = model(ray_bundle)
@@ -126,7 +146,8 @@ def render_images(
 
         # TODO (Q1.5): Visualize depth
         if cam_idx == 2 and file_prefix == '':
-            pass
+            depth = out['depth'].view(image_size[1], image_size[0]).detach().cpu()
+            plt.imsave('images/depth.png', np.array(depth / depth.max()))
 
         # Save
         if save:
@@ -144,6 +165,7 @@ def render(
     # Create model
     model = Model(cfg)
     model = model.cuda(); model.eval()
+    os.makedirs('images', exist_ok=True)
 
     # Render spiral
     cameras = create_surround_cameras(3.0, n_poses=20)
@@ -202,7 +224,7 @@ def train(
             out = model(ray_bundle)
 
             # TODO (Q2.2): Calculate loss
-            loss = None
+            loss = torch.nn.functional.mse_loss(out['feature'], rgb_gt)
 
             # Backprop
             optimizer.zero_grad()
@@ -250,7 +272,7 @@ def create_model(cfg):
         # Resume training if requested.
         if cfg.training.resume and os.path.isfile(checkpoint_path):
             print(f"Resuming from checkpoint {checkpoint_path}.")
-            loaded_data = torch.load(checkpoint_path)
+            loaded_data = torch.load(checkpoint_path, weights_only=False)
             model.load_state_dict(loaded_data["model"])
             start_epoch = loaded_data["epoch"]
 
@@ -275,7 +297,7 @@ def create_model(cfg):
         )
 
     lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
-        optimizer, lr_lambda, last_epoch=start_epoch - 1, verbose=False
+        optimizer, lr_lambda, last_epoch=start_epoch - 1
     )
 
     return model, optimizer, lr_scheduler, start_epoch, checkpoint_path
@@ -322,7 +344,10 @@ def train_nerf(
             out = model(ray_bundle)
 
             # TODO (Q3.1): Calculate loss
-            loss = None
+            loss = torch.nn.functional.mse_loss(out['feature'], rgb_gt)
+            if 'feature_coarse' in out:
+                # Q4.2: also supervise the coarse network
+                loss = loss + torch.nn.functional.mse_loss(out['feature_coarse'], rgb_gt)
 
             if cfg.renderer.type == 'volume_sdf':
                 loss += cfg.training.eikonal_weight * get_eikonal_loss(

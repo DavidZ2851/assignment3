@@ -68,7 +68,7 @@ def get_points_renderer(
     return renderer
 
 
-def render_points(filename, points, image_size=256, color=[0.7, 0.7, 1], device=None):
+def render_points(filename, points, image_size=256, color=[0.7, 0.7, 1], device=None, background_color=(1, 1, 1)):
     # The device tells us whether we are rendering with GPU or CPU. The rendering will
     # be *much* faster if you have a CUDA-enabled NVIDIA GPU. However, your code will
     # still run fine on a CPU.
@@ -78,7 +78,7 @@ def render_points(filename, points, image_size=256, color=[0.7, 0.7, 1], device=
         device = get_device()
 
     # Get the renderer.
-    points_renderer = get_points_renderer(image_size=256,radius=0.01)
+    points_renderer = get_points_renderer(image_size=256,radius=0.01, background_color=background_color)
 
     # Get the vertices, faces, and textures.
     # vertices, faces = load_cow_mesh(cow_path)

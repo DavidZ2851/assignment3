@@ -11,3 +11,11 @@ soln/images/
 soln/ta_images/
 soln/data/
 soln/points_checkpoint
+
+# large data, checkpoints and local tooling
+GS/data/materials/
+nerf/data/*.png
+nerf/checkpoints*
+nerf/volsdf_checkpoint*
+nerf_materials/
+.claude/
